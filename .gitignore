@@ -1,0 +1,9 @@
+.vscode
+node_modules
+
+auth.json
+history.json
+
+cron.sh
+cron.log
+cron-error.log
