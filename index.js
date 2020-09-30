@@ -186,30 +186,6 @@ async function reportProgress(history, newActivities) {
   let message = '';
   let threadMessage = '';
 
-  // Longest activity tracker
-  //   newActivities.forEach(activity => {
-  //     let isGreaterThanAllDates = false;
-  //     for (let day in history) {
-  //       if (history.hasOwnProperty(day)) {
-  //         isGreaterThanAllDates = history[day].filter(record => {
-  //           return activity.athlete.firstname === record.firstname &&
-  //               activity.athlete.lastname === record.lastname &&
-  //               activity.type === record.type;
-  //         }).every(record => {
-  //             return activity.distance >= record.distance;
-  //         });
-  //         if (!isGreaterThanAllDates) {
-  //            break;
-  //         }
-  //       }
-  //     }
-  //     if (isGreaterThanAllDates) {
-  //       message += `Congratulations ${activity.athlete.firstname} on your longest ${activity.type}, ${Math.round(activity.distance/1000)} kilometers!
-    
-  // `;
-  //     }
-  //   });
-
   const buildMessage = (filter, orderer, header, buildParticipantLine) => {
     let messagePart = '';
     const contest = Object.keys(participants).map(k => participants[k]).filter(filter).sort((a, b) => { return orderer(b) - orderer(a);});
@@ -226,46 +202,19 @@ async function reportProgress(history, newActivities) {
     return messagePart;
   }
 
-  threadMessage += `Mike and Daryl Septeverist Challenge
-
-`;
-  const sumElevation = p => p.bikeAltitude + p.runAltitude + p.hikeAltitude;
-  const buildElevationParticipantLine = p => `${p.name} ${Math.round(sumElevation(p)/100)/10} km`;
-  threadMessage += buildMessage(p => sumElevation(p) >= 8.848*1000,
-    sumElevation, ':trophy: Summitteers', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 8.44*1000 && sumElevation(p) < 8.848*1000,
-    sumElevation, 'In the Death Zone', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 7.47*1000 && sumElevation(p) < 8.44*1000,
-    sumElevation, 'Camp 3', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 6.4*1000 && sumElevation(p) < 7.47*1000,
-    sumElevation, 'Camp 2', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 6.065*1000 && sumElevation(p) < 6.4*1000,
-    sumElevation, 'Camp 1', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 5.6*1000 && sumElevation(p) < 6.065*1000,
-    sumElevation, 'Basecamp', buildElevationParticipantLine
-  );
-  threadMessage += buildMessage(p => sumElevation(p) >= 0.1*1000 && sumElevation(p) < 5.6*1000,
-    sumElevation, 'Summitting', buildElevationParticipantLine
-  );
-
-  const buildMoveTimeParticipantMessage = p => `${p.name} ${Math.round((p.moveTime)/60/6)/10} hours`;
-  message += buildMessage(p => p.moveTime > 0 && p.moveTime < 20 * 60 * 60,
+  const buildMoveDistanceParticipantMessage = p => `${p.name} ${Math.round((p.bikeDistance + p.runDistance * 3)/100)/10} km`;
+  message += buildMessage(p => p.bikeDistance + p.runDistance * 3 > 0 && p.bikeDistance + p.runDistance * 3 < 400 * 1000,
     p => p.moveTime,
-    'Keep that heart rate up. September Exercise Time Challenge',
-    buildMoveTimeParticipantMessage
+    'Keep that heart rate up. October Distance Challenge',
+    buildMoveDistanceParticipantMessage
   );
-  message += buildMessage(p => p.moveTime >= 20 * 60 * 60,
+  message += buildMessage(p => p.bikeDistance + p.runDistance * 3 >= 400 * 1000,
     p => p.moveTime,
-    ':trophy: Congrats to the 20 hour club!',
-    buildMoveTimeParticipantMessage
+    ':trophy: Congrats to the 400 km club!',
+    buildMoveDistanceParticipantMessage
   );
 
-  message += `This month ${Object.keys(participants).length} Sonatypers have
+  threadMessage += `This month ${Object.keys(participants).length} Sonatypers have
   biked ${Math.round(bikeDistance/1000)} kilometers
   biked up ${Math.round(bikeAltitude/1000)} kilometers
   ran ${Math.round(runDistance/1000)} kilometers
