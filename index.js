@@ -89,9 +89,6 @@ async function reportProgress(historyAsJson, newActivities) {
   let totalsMessage = totals.message();
 
   await slack.send(monthlyChallengeMessage, totalsMessage);
-
-  console.log(monthlyChallengeMessage);
-  console.log(totalsMessage);
 }
 
 async function main() {

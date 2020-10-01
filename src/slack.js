@@ -4,6 +4,11 @@ const slack = require('slack');
 module.exports.send = function (message, ...threadMessage) {
   if (auth.slack.enabled) {
     return _send(message, ...threadMessage);
+  } else if (auth.slack.debug) {
+    console.log(message);
+    threadMessage.forEach((tMsg) => {
+      console.log(tMsg);
+    });
   }
 };
 
