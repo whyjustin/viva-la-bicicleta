@@ -16,12 +16,16 @@ An auth.json file is required with the following format
 ```
 {
 	"strava": {
+		"club_id": ""
 		"client_id": ,
 		"client_secret": "",
 		"access_token": "",
 		"refresh_token": ""
 	},
 	"slack": {
+		"enabled": true|false,
+		"broadcast_threads": true|false,
+		"channel": "",
 		"token": ""
 	}
 }
