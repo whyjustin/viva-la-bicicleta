@@ -38,7 +38,7 @@ module.exports.message = function () {
     (p) =>
       p.bikeDistance + p.runDistance * 3 > 0 &&
       p.bikeDistance + p.runDistance * 3 < 400 * 1000,
-    (p) => p.moveTime,
+    (p) => p.bikeDistance + p.runDistance * 3,
     'Keep that heart rate up. October Distance Challenge',
     buildMoveDistanceParticipantMessage,
     allParticipants
@@ -46,7 +46,7 @@ module.exports.message = function () {
 
   message += buildMessage(
     (p) => p.bikeDistance + p.runDistance * 3 >= 400 * 1000,
-    (p) => p.moveTime,
+    (p) => p.bikeDistance + p.runDistance * 3,
     ':trophy: Congrats to the 400 km club!',
     buildMoveDistanceParticipantMessage,
     allParticipants

@@ -25,7 +25,7 @@ An auth.json file is required with the following format
 	"slack": {
 		"enabled": true|false,
 		"debug": true|false
-		"channel": "",
+		"channel_id": "",
 		"token": ""
 	}
 }
