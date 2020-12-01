@@ -28,26 +28,16 @@ const buildMessage = (
 };
 
 const buildMoveDistanceParticipantMessage = (p) =>
-  `${p.name} ${Math.round((p.bikeDistance + p.runDistance * 3) / 100) / 10} km`;
+  `${p.name} ${Math.round(p.moveTime / 60 * p.activities)}`;
 
 module.exports.message = function () {
   let message = '';
   let allParticipants = participants.getAll();
 
   message += buildMessage(
-    (p) =>
-      p.bikeDistance + p.runDistance * 3 > 0 &&
-      p.bikeDistance + p.runDistance * 3 < 400 * 1000,
-    (p) => p.bikeDistance + p.runDistance * 3,
-    'Keep that heart rate up. October Distance Challenge',
-    buildMoveDistanceParticipantMessage,
-    allParticipants
-  );
-
-  message += buildMessage(
-    (p) => p.bikeDistance + p.runDistance * 3 >= 400 * 1000,
-    (p) => p.bikeDistance + p.runDistance * 3,
-    ':trophy: Congrats to the 400 km club!',
+    (p) => true,
+    (p) => p.moveTime / 60 * p.activities,
+    ':confused_dog: what this stat is? Ask @timlevett.',
     buildMoveDistanceParticipantMessage,
     allParticipants
   );

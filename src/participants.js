@@ -20,6 +20,7 @@ module.exports.calculate = function (record) {
   } else if (record.type === 'Row') {
     participant.rowDistance += record.distance;
   }
+  participant.activities++;
   participant.moveTime += record.moving_time;
 
   participants[name] = participant;
@@ -43,6 +44,7 @@ function create(name) {
     hikeAltitude: 0,
     rowDistance: 0,
     moveTime: 0,
+    activities: 0,
   };
   return participant;
 }
