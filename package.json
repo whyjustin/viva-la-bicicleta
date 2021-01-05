@@ -9,9 +9,9 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "open": "^7.0.3",
+    "open": "^7.3.0",
     "slack": "^11.0.2",
-    "strava-v3": "^2.0.5",
-    "zwift-mobile-api": "^0.3.16"
+    "strava-v3": "^2.0.9",
+    "zwift-mobile-api": "^0.3.18"
   }
 }

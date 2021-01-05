@@ -68,6 +68,7 @@ async function doWork() {
 async function reportProgress(historyAsJson, newActivities) {
   let todayDate = new Date();
   let todayMonth = todayDate.getMonth();
+  let participantList = {};
   for (let day in historyAsJson) {
     if (historyAsJson.hasOwnProperty(day)) {
       historyAsJson[day].forEach((record) => {
@@ -77,6 +78,11 @@ async function reportProgress(historyAsJson, newActivities) {
 
         let date = new Date(day.replace(/(\d{4})-(\d{2})-(\d{2})/, '$2/$3/$1'));
         if (date.getMonth() === todayMonth) {
+          let name = `${record.firstname} ${record.lastname}`;
+          let participant = participantList[name] = participantList[name] || [];
+          let week = getWeekNumber(date);
+          participant[week] = participant[week] || 0;
+          participant[week]++;
           participants.calculate(record);
           monthlyTotal.calculate(record);
         }
@@ -85,11 +91,39 @@ async function reportProgress(historyAsJson, newActivities) {
     }
   }
 
-  let monthlyChallengeMessage = monthlyChallenge.message();
+  let participantListTwo = [];
+  for (const [key, value] of Object.entries(participantList)) {
+    let max = 0;
+    value.forEach(activities => {
+      max = Math.max(max, activities);
+    })
+    participantListTwo.push({
+      name: key,
+      activities: max
+    });
+  }
+  participantListTwo = participantListTwo.sort((a, b) => {
+    return b.activities - a.activities;
+  });
+  let message = `Make December Count! Maximize your activites per week.
+`;
+  for (const [key, value] of Object.entries(participantListTwo)) {
+    message += `${value.name} ${value.activities} activities
+`;
+  }
+
+  let monthlyChallengeMessage = message; //monthlyChallenge.message();
   let totalsMessage = totals.message();
 
   await slack.send(monthlyChallengeMessage, totalsMessage);
 }
+
+function getWeekNumber(d) {
+  var dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
+};
 
 async function main() {
   await history.setup();
