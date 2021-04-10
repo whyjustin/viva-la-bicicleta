@@ -1,4 +1,4 @@
-const history = require('./src/history');
+const fileHelper = require('./src/fileHelper');
 const monthlyTotal = require('./src/monthlyTotal');
 const yearTotal = require('./src/yearTotal');
 const totals = require('./src/totals');
@@ -13,7 +13,7 @@ async function doWork() {
   try {
     const activities = await strava.listActivities();
 
-    const historyAsJson = history.readAsJson();
+    const historyAsJson = fileHelper.readAsJson(fileHelper.history);
 
     const newActivities = activities.filter((activity) => {
       return !Object.keys(historyAsJson).some((day) => {
@@ -33,8 +33,7 @@ async function doWork() {
       });
     });
 
-    const todayDate = new Date();
-    const today = todayDate.toISOString().split('T')[0];
+    const today = getDateString(new Date());
     if (!historyAsJson[today]) {
       historyAsJson[today] = [];
     }
@@ -53,7 +52,7 @@ async function doWork() {
       });
     });
 
-    history.update(historyAsJson);
+    fileHelper.update(fileHelper.history, historyAsJson);
 
     await reportProgress(historyAsJson, newActivities);
   } catch (err) {
@@ -65,10 +64,60 @@ async function doWork() {
   }
 }
 
+const participantSkipList = [
+  'shrikanth k.',
+  'mark k.',
+  'denison w.',
+  'chuck j.',
+  'manindra s.',
+  'michel k.',
+  'anthony b.'
+];
+
+const participantMap = {
+  'paul v.': '@Paul Volkman',
+  'steven o.': '@Steven Odorczyk',
+  'frank t.': '@Frank Tingle',
+  'steve p.': '@Steve Palacios',
+  'irina t.': '@Irina Tishelman',
+  'yizhao l.': '@Yizhao',
+  'david d.': '@David Doughty',
+  'adam d.': '@Adam De Delva',
+  'j t.': '@Joe Tom',
+  'juan a.': '@Juan Aguirre',
+  'mikaela b.': '@Mikaela Berst',
+  'mark d.': '@Mark Dodgson',
+  'guillermo antonio v.': '@Guillermo',
+  'ryan d.': '@Ryan',
+  'jean-pierre l.': '@JP Levac',
+  'mike o.': '@Mike Oliverio',
+  'troy n.': '@tneeriemer',
+  'zachary c.': '@Zack Conord',
+  'oleksiy v.': '@ovoronin',
+  'timothy n.': '@Tim Newton',
+  'john f.': '@John Flinchbaugh',
+  'adam r.': '@Adam Rogers',
+  'chris c.': '@Chris Carlucci',
+  'adrian p.': '@Adrian Powell',
+  'jon w.': '@Jon West',
+  'melanie s.': '@Melanie Sexton',
+  'ashlee h.': '@Ashlee Hall',
+  'daniel t.': '@Dan T',
+  'babs m.': '@Babs',
+  'matthew w.': '@Matt Wood (Legal)',
+  'mike h.': '@Mike Hansen',
+  'john k.': '@JohnKr',
+  'tim l.': '@timlevett',
+  'joseph s.': '@Joseph Stephens',
+  'justin y.': '@Justin',
+  'andrés p.': '@promiscu-tea',
+  'daryl h.': '@Daryl Handley'
+};
+
 async function reportProgress(historyAsJson, newActivities) {
-  let todayDate = new Date();
-  let todayMonth = todayDate.getMonth();
-  let participantList = {};
+  const todayDate = new Date();
+  const todayMonth = todayDate.getMonth();
+  const todayYear = todayDate.getFullYear();
   for (let day in historyAsJson) {
     if (historyAsJson.hasOwnProperty(day)) {
       historyAsJson[day].forEach((record) => {
@@ -76,57 +125,127 @@ async function reportProgress(historyAsJson, newActivities) {
           return;
         }
 
-        let date = new Date(day.replace(/(\d{4})-(\d{2})-(\d{2})/, '$2/$3/$1'));
-        if (date.getMonth() === todayMonth) {
-          let name = `${record.firstname} ${record.lastname}`;
-          let participant = participantList[name] = participantList[name] || [];
-          let week = getWeekNumber(date);
-          participant[week] = participant[week] || 0;
-          participant[week]++;
-          participants.calculate(record);
-          monthlyTotal.calculate(record);
+        if (participantSkipList.includes(`${record.firstname} ${record.lastname}`.toLowerCase())) {
+          return;
         }
-        yearTotal.update(record);
+
+        let date = new Date(day.replace(/(\d{4})-(\d{2})-(\d{2})/, '$2/$3/$1'));
+        if (date.getFullYear() === todayYear) {
+          if (date.getMonth() == 2 && date.getDate() >= 14 || date.getMonth() > 2) {
+            participants.calculate(record);
+            monthlyTotal.calculate(record);
+          }
+          yearTotal.update(record);
+        }
       });
     }
   }
 
-  let participantListTwo = [];
-  for (const [key, value] of Object.entries(participantList)) {
-    let max = 0;
-    value.forEach(activities => {
-      max = Math.max(max, activities);
-    })
-    participantListTwo.push({
-      name: key,
-      activities: max
-    });
+  let armShellsMessage = await armShells();
+  let fireShellsMessage = await fireShells();
+
+  let monthlyChallengeMessage = monthlyChallenge.message();
+
+  let mainMessage = monthlyChallengeMessage.main;
+  if (armShellsMessage) {
+    mainMessage += `
+
+${armShellsMessage}`;
   }
-  participantListTwo = participantListTwo.sort((a, b) => {
-    return b.activities - a.activities;
-  });
-  let message = `Make December Count! Maximize your activites per week.
-`;
-  for (const [key, value] of Object.entries(participantListTwo)) {
-    message += `${value.name} ${value.activities} activities
-`;
+  if (fireShellsMessage) {
+    mainMessage += `
+
+${fireShellsMessage}`;
   }
 
-  let monthlyChallengeMessage = message; //monthlyChallenge.message();
-  let totalsMessage = totals.message();
+  let totalsMessage = totals.message() + `
 
-  await slack.send(monthlyChallengeMessage, totalsMessage);
+${monthlyChallengeMessage.thread}`;
+
+  await slack.send(mainMessage, totalsMessage);
 }
 
-function getWeekNumber(d) {
-  var dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
-};
+async function armShells() {
+  const todayDate = new Date();
+  if (todayDate.getDay() !== 1) {
+    return;
+  }
+
+  const shells = fileHelper.readAsJson(fileHelper.shells);
+  const allParticipants = participants.getAll();
+  const lifters = Object.keys(allParticipants);
+  shuffleArray(lifters);
+  shells[getDateString(todayDate)] = {
+    'b': lifters[0],
+    'r': lifters[1],
+    'rrr': lifters[2]
+  }
+  fileHelper.update(fileHelper.shells, shells)
+
+  return `${getMentionName(lifters[0])} has received a Blue Shell
+${getMentionName(lifters[1])} has received a Red Shell
+${getMentionName(lifters[2])} has received Three Red Shells
+
+Shells will be fired on Friday, watch out!`;
+}
+
+async function fireShells() {
+  const todayDate = new Date();
+  // if (todayDate.getDay() !== 5) {
+  //   return;
+  // }
+  const shellsJson = fileHelper.readAsJson(fileHelper.shells);
+  const modifiers = fileHelper.readAsJson(fileHelper.modifiers);
+
+  const fourDaysAgo = new Date();
+  fourDaysAgo.setDate(todayDate.getDate() - 4)
+  const shells = shellsJson['2021-04-10']; //getDateString(fourDaysAgo)]
+  if (!shells) {
+    return;
+  }
+
+  const liftersAndSquirrels = monthlyChallenge.getLiftersAndSquirrels();
+  const lifters = liftersAndSquirrels.lifters;
+  const sumElevation = monthlyChallenge.sumElevation;
+  const blueElevation = (sumElevation(lifters[0]) - sumElevation(lifters[4])) / 2;
+
+  let message = `${getMentionName(shells.b)} launched a Blue Shell and hit `;
+  lifters.forEach((lifter) => {
+    lifterModifier = modifiers[lifter.name] || {
+      elevation: 0,
+      time: 0
+    };
+    lifterModifier.elevation -= blueElevation;
+    modifiers[lifter.name] = lifterModifier;
+    message += `${getMentionName(lifter.name)} `;
+  });
+  message += `sending them back ${Math.round(blueElevation/10)/100} km`
+
+  fileHelper.update(fileHelper.modifiers, modifiers);
+
+  return message;
+}
+
+//https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array/18650169#18650169
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function getDateString(todayDate) {
+  return todayDate.toISOString().split('T')[0];
+}
+
+function getMentionName(name) {
+  return participantMap[name.toLowerCase()] || name;
+}
 
 async function main() {
-  await history.setup();
+  await fileHelper.setup(fileHelper.history);
+  await fileHelper.setup(fileHelper.shells);
+  await fileHelper.setup(fileHelper.modifiers);
   await strava.refreshStravaToken();
   await doWork();
 }

@@ -2,7 +2,8 @@
 node_modules
 
 auth.json
-history.json
+history.*
+shells.*
 
 cron.sh
 cron.log
