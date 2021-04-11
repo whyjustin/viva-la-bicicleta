@@ -32,20 +32,22 @@ const sumElevation = p => p.bikeAltitude + p.runAltitude + p.hikeAltitude;
 function getLiftersAndSquirrels() {
   let allParticipants = participants.getAll();
 
-  const lifters = Object.keys(allParticipants)
-  .map((k) => allParticipants[k])
+  const map = Object.keys(allParticipants)
+  .map((k) => allParticipants[k]);
+
+  const lifters = map
   .sort((a, b) => {
     return sumElevation(b) - sumElevation(a);
   }).slice(0, 5);
 
-  const squirrels = Object.keys(allParticipants)
-  .map((k) => allParticipants[k])
+  const squirrels = map
   .sort((a, b) => {
     return b.moveTime - a.moveTime;
   }).filter(p => !lifters.includes(p)).slice(0, 5);
 
   return {
     all: allParticipants,
+    map: map,
     lifters: lifters,
     squirrels: squirrels
   };

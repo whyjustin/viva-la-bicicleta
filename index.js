@@ -175,14 +175,15 @@ async function armShells() {
   const allParticipants = participants.getAll();
   const lifters = Object.keys(allParticipants);
   shuffleArray(lifters);
+  const blueOrStar = getWeekNumber(todayDate)[1] ? 'b' : 's';
   shells[getDateString(todayDate)] = {
-    'b': lifters[0],
     'r': lifters[1],
     'rrr': lifters[2]
   }
+  shells[getDateString(todayDate)][blueOrStar] = lifters[0];
   fileHelper.update(fileHelper.shells, shells)
 
-  return `${getMentionName(lifters[0])} has received a Blue Shell
+  return `${getMentionName(lifters[0])} has received a ${blueOrStar === 'b' ? 'Blue Shell' : 'Star'}
 ${getMentionName(lifters[1])} has received a Red Shell
 ${getMentionName(lifters[2])} has received Three Red Shells
 
@@ -199,31 +200,128 @@ async function fireShells() {
 
   const fourDaysAgo = new Date();
   fourDaysAgo.setDate(todayDate.getDate() - 4)
-  const shells = shellsJson['2021-04-10']; //getDateString(fourDaysAgo)]
+  const shells = shellsJson['2021-04-11']; //getDateString(fourDaysAgo)]
   if (!shells) {
     return;
   }
 
+  let message = '';
   const liftersAndSquirrels = monthlyChallenge.getLiftersAndSquirrels();
-  const lifters = liftersAndSquirrels.lifters;
   const sumElevation = monthlyChallenge.sumElevation;
-  const blueElevation = (sumElevation(lifters[0]) - sumElevation(lifters[4])) / 2;
+  if (shells.b) {
+    const lifters = liftersAndSquirrels.map.sort((a, b) => {
+      return sumElevation(b) - sumElevation(a);
+    });
 
-  let message = `${getMentionName(shells.b)} launched a Blue Shell and hit `;
-  lifters.forEach((lifter) => {
-    lifterModifier = modifiers[lifter.name] || {
+    message += `${getMentionName(shells.b)} launched a Blue Shell and hit 
+`;
+    for (let i = 0; i <= 4; i++) {
+      const lifter = lifters[i];
+      lifterModifier = modifiers[lifter.name] || {
+        elevation: 0,
+        time: 0
+      };
+
+      let blueElevation = sumElevation(lifter) - sumElevation(lifters[5]);
+      lifterModifier.elevation -= blueElevation;
+      modifiers[lifter.name] = lifterModifier;
+      message += `${getMentionName(lifter.name)} ${Math.round(blueElevation/10)/100} km
+`;
+    };
+    message += `
+${getMentionName(shells.b)} launched a Blue Shell and hit 
+`;
+
+    const squirrels = liftersAndSquirrels.map.sort((a, b) => {
+      return b.moveTime - a.moveTime;
+    }).filter(p => !liftersAndSquirrels.lifters.includes(p));
+
+    for (let i = 0; i <= 4; i++) {
+      const squirrel = squirrels[i];
+      squirrelModifier = modifiers[squirrel.name] || {
+        elevation: 0,
+        time: 0
+      };
+
+      let blueTime = squirrel.moveTime - squirrels[5].moveTime;
+      squirrelModifier.time -= blueTime;
+      modifiers[squirrel.name] = squirrelModifier;
+      message += `${getMentionName(squirrel.name)} ${Math.round(blueTime / 60 / 6) / 10} hours
+`;
+    };
+    message += `
+`;
+  }
+
+  const orderedParticipants = liftersAndSquirrels.map.sort((a, b) => {
+    return b.moveTime - a.moveTime;
+  });
+  let rIndex, rrrIndex, sIndex;
+  for (let i = 0; i < orderedParticipants.length; i++) {
+    if (orderedParticipants[i].name.toLowerCase() === shells.r.toLowerCase()) {
+      rIndex = i;
+    }
+    if (orderedParticipants[i].name.toLowerCase() === shells.rrr.toLowerCase()) {
+      rrrIndex = i;
+    }
+    if (shells.s) {
+      if (orderedParticipants[i].name.toLowerCase() === shells.s.toLowerCase()) {
+        sIndex = i;
+      } 
+    }
+  }
+  message += `${getMentionName(shells.r)} launched a Red Shell and hit 
+`;
+  if (rIndex > 0) {
+    message += hitRedShell(rIndex, rIndex - 1, orderedParticipants, modifiers, sumElevation);
+  }
+  message += `
+`;
+  message += `${getMentionName(shells.rrr)} launched Three Red Shells and hit 
+`;
+  for (let i = 0; i < 3; i++) {
+    if (rrrIndex - i > 0) {
+      message += hitRedShell(rrrIndex, rrrIndex - i - 1, orderedParticipants, modifiers, sumElevation);
+    }
+  }
+
+  if (shells.s) {
+    message += `
+${getMentionName(shells.s)} used their star and gained `;
+    const target = orderedParticipants[sIndex];
+    targetModifier = modifiers[target.name] || {
       elevation: 0,
       time: 0
     };
-    lifterModifier.elevation -= blueElevation;
-    modifiers[lifter.name] = lifterModifier;
-    message += `${getMentionName(lifter.name)} `;
-  });
-  message += `sending them back ${Math.round(blueElevation/10)/100} km`
+    let caughtIndex = Math.max(sIndex - 3, 0);
+    let targetTime = orderedParticipants[caughtIndex].moveTime - target.moveTime;
+    targetModifier.time += targetTime;
+    let targetElevation = Math.max(sumElevation(orderedParticipants[caughtIndex]) - sumElevation(target), 0);
+    targetModifier.elevation += targetElevation;
+    modifiers[target.name] = targetModifier;
+    message += `${Math.round(targetTime / 60 / 6) / 10} hours, ${Math.round(targetElevation/10)/100} km
+`;
+  }
 
   fileHelper.update(fileHelper.modifiers, modifiers);
 
   return message;
+}
+
+function hitRedShell(index, hitIndex, orderedParticipants, modifiers, sumElevation) {
+  const target = orderedParticipants[hitIndex];
+  targetModifier = modifiers[target.name] || {
+    elevation: 0,
+    time: 0
+  };
+
+  let targetTime = target.moveTime - orderedParticipants[index].moveTime;
+  targetModifier.time -= targetTime;
+  let targetElevation = Math.max(sumElevation(target) - sumElevation(orderedParticipants[index]), 0);
+  targetModifier.elevation -= targetElevation;
+  modifiers[target.name] = targetModifier;
+  return `${getMentionName(target.name)} ${Math.round(targetTime / 60 / 6) / 10} hours, ${Math.round(targetElevation/10)/100} km
+`;
 }
 
 //https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array/18650169#18650169
@@ -240,6 +338,36 @@ function getDateString(todayDate) {
 
 function getMentionName(name) {
   return participantMap[name.toLowerCase()] || name;
+}
+
+/* For a given date, get the ISO week number
+ *
+ * Based on information at:
+ *
+ *    http://www.merlyn.demon.co.uk/weekcalc.htm#WNR
+ *
+ * Algorithm is to find nearest thursday, it's year
+ * is the year of the week number. Then get weeks
+ * between that date and the first day of that year.
+ *
+ * Note that dates in one year can be weeks of previous
+ * or next year, overlap is up to 3 days.
+ *
+ * e.g. 2014/12/29 is Monday in week  1 of 2015
+ *      2012/1/1   is Sunday in week 52 of 2011
+ */
+function getWeekNumber(d) {
+  // Copy date so don't modify original
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // Set to nearest Thursday: current date + 4 - current day number
+  // Make Sunday's day number 7
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  // Get first day of year
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  // Calculate full weeks to nearest Thursday
+  var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+  // Return array of year and week number
+  return [d.getUTCFullYear(), weekNo];
 }
 
 async function main() {
