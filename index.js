@@ -142,9 +142,8 @@ async function reportProgress(historyAsJson, newActivities) {
   }
 
   let armShellsMessage = await armShells();
-  let fireShellsMessage = await fireShells();
-
   let monthlyChallengeMessage = monthlyChallenge.message();
+  let fireShellsMessage = await fireShells();
 
   let mainMessage = monthlyChallengeMessage.main;
   if (armShellsMessage) {
@@ -192,25 +191,25 @@ Shells will be fired on Friday, watch out!`;
 
 async function fireShells() {
   const todayDate = new Date();
-  // if (todayDate.getDay() !== 5) {
-  //   return;
-  // }
+  if (todayDate.getDay() !== 5) {
+    return;
+  }
   const shellsJson = fileHelper.readAsJson(fileHelper.shells);
   const modifiers = fileHelper.readAsJson(fileHelper.modifiers);
 
   const fourDaysAgo = new Date();
   fourDaysAgo.setDate(todayDate.getDate() - 4)
-  const shells = shellsJson['2021-04-11']; //getDateString(fourDaysAgo)]
+  const shells = shellsJson[getDateString(fourDaysAgo)]
   if (!shells) {
     return;
   }
 
   let message = '';
   const liftersAndSquirrels = monthlyChallenge.getLiftersAndSquirrels();
-  const sumElevation = monthlyChallenge.sumElevation;
+  const sumModifiedElevation = monthlyChallenge.sumModifiedElevation;
   if (shells.b) {
     const lifters = liftersAndSquirrels.map.sort((a, b) => {
-      return sumElevation(b) - sumElevation(a);
+      return sumModifiedElevation(b) - sumModifiedElevation(a);
     });
 
     message += `${getMentionName(shells.b)} launched a Blue Shell and hit 
@@ -222,7 +221,7 @@ async function fireShells() {
         time: 0
       };
 
-      let blueElevation = sumElevation(lifter) - sumElevation(lifters[5]);
+      let blueElevation = sumModifiedElevation(lifter) - sumModifiedElevation(lifters[5]);
       lifterModifier.elevation -= blueElevation;
       modifiers[lifter.name] = lifterModifier;
       message += `${getMentionName(lifter.name)} ${Math.round(blueElevation/10)/100} km
@@ -233,7 +232,7 @@ ${getMentionName(shells.b)} launched a Blue Shell and hit
 `;
 
     const squirrels = liftersAndSquirrels.map.sort((a, b) => {
-      return b.moveTime - a.moveTime;
+      return (b.moveTime + b.modifiedTime) - (a.moveTime + b.modifiedTime);
     }).filter(p => !liftersAndSquirrels.lifters.includes(p));
 
     for (let i = 0; i <= 4; i++) {
@@ -273,7 +272,7 @@ ${getMentionName(shells.b)} launched a Blue Shell and hit
   message += `${getMentionName(shells.r)} launched a Red Shell and hit 
 `;
   if (rIndex > 0) {
-    message += hitRedShell(rIndex, rIndex - 1, orderedParticipants, modifiers, sumElevation);
+    message += hitRedShell(rIndex, rIndex - 1, orderedParticipants, modifiers, sumModifiedElevation);
   }
   message += `
 `;
@@ -281,7 +280,7 @@ ${getMentionName(shells.b)} launched a Blue Shell and hit
 `;
   for (let i = 0; i < 3; i++) {
     if (rrrIndex - i > 0) {
-      message += hitRedShell(rrrIndex, rrrIndex - i - 1, orderedParticipants, modifiers, sumElevation);
+      message += hitRedShell(rrrIndex, rrrIndex - i - 1, orderedParticipants, modifiers, sumModifiedElevation);
     }
   }
 
@@ -296,7 +295,7 @@ ${getMentionName(shells.s)} used their star and gained `;
     let caughtIndex = Math.max(sIndex - 3, 0);
     let targetTime = orderedParticipants[caughtIndex].moveTime - target.moveTime;
     targetModifier.time += targetTime;
-    let targetElevation = Math.max(sumElevation(orderedParticipants[caughtIndex]) - sumElevation(target), 0);
+    let targetElevation = Math.max(sumModifiedElevation(orderedParticipants[caughtIndex]) - sumModifiedElevation(target), 0);
     targetModifier.elevation += targetElevation;
     modifiers[target.name] = targetModifier;
     message += `${Math.round(targetTime / 60 / 6) / 10} hours, ${Math.round(targetElevation/10)/100} km
@@ -308,7 +307,7 @@ ${getMentionName(shells.s)} used their star and gained `;
   return message;
 }
 
-function hitRedShell(index, hitIndex, orderedParticipants, modifiers, sumElevation) {
+function hitRedShell(index, hitIndex, orderedParticipants, modifiers, sumModifiedElevation) {
   const target = orderedParticipants[hitIndex];
   targetModifier = modifiers[target.name] || {
     elevation: 0,
@@ -317,7 +316,7 @@ function hitRedShell(index, hitIndex, orderedParticipants, modifiers, sumElevati
 
   let targetTime = target.moveTime - orderedParticipants[index].moveTime;
   targetModifier.time -= targetTime;
-  let targetElevation = Math.max(sumElevation(target) - sumElevation(orderedParticipants[index]), 0);
+  let targetElevation = Math.max(sumModifiedElevation(target) - sumModifiedElevation(orderedParticipants[index]), 0);
   targetModifier.elevation -= targetElevation;
   modifiers[target.name] = targetModifier;
   return `${getMentionName(target.name)} ${Math.round(targetTime / 60 / 6) / 10} hours, ${Math.round(targetElevation/10)/100} km

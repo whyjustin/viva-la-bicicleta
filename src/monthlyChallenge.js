@@ -1,4 +1,5 @@
 const participants = require('./participants');
+const fileHelper = require('./fileHelper');
 
 const buildMessage = (
   filter,
@@ -28,21 +29,33 @@ const buildMessage = (
 };
 
 const sumElevation = p => p.bikeAltitude + p.runAltitude + p.hikeAltitude;
+const sumModifiedElevation = p => p.bikeAltitude + p.runAltitude + p.hikeAltitude + p.modifiedElevation;
 
 function getLiftersAndSquirrels() {
   let allParticipants = participants.getAll();
+  const modifiers = fileHelper.readAsJson(fileHelper.modifiers);
 
   const map = Object.keys(allParticipants)
   .map((k) => allParticipants[k]);
 
+  map.forEach((participant) => {
+    if (modifiers[participant.name]) {
+      participant.modifiedElevation = modifiers[participant.name].elevation;
+      participant.modifiedTime = modifiers[participant.name].time;
+    } else {
+      participant.modifiedElevation = 0;
+      participant.modifiedTime = 0;
+    }
+  })
+
   const lifters = map
   .sort((a, b) => {
-    return sumElevation(b) - sumElevation(a);
+    return sumModifiedElevation(b) - sumModifiedElevation(a);
   }).slice(0, 5);
 
   const squirrels = map
   .sort((a, b) => {
-    return b.moveTime - a.moveTime;
+    return (b.moveTime + b.modifiedTime) - (a.moveTime + b.modifiedTime);
   }).filter(p => !lifters.includes(p)).slice(0, 5);
 
   return {
@@ -55,11 +68,14 @@ function getLiftersAndSquirrels() {
 
 module.exports.getLiftersAndSquirrels = getLiftersAndSquirrels;
 module.exports.sumElevation = sumElevation;
+module.exports.sumModifiedElevation = sumModifiedElevation;
 
 // const buildMoveDistanceParticipantMessage = (p) =>
 //   `${p.name} ${Math.round(p.moveTime / 60 / 6) / 10}`;
 
 module.exports.message = function () {
+
+
   let message = `Weekly Lift Challenge Leaderboard
 
 Top 5 Lifters
@@ -67,7 +83,7 @@ Top 5 Lifters
   const liftersAndSquirrels = getLiftersAndSquirrels();
   
   liftersAndSquirrels.lifters.forEach(p => {
-    message += `${p.name} ${Math.round(sumElevation(p)/10)/100} km
+    message += `${p.name} ${Math.round(sumModifiedElevation(p)/10)/100} km ${p.modifiedElevation ? `(${Math.round(p.modifiedElevation/10)/100} km)` : ''}
 `
   });
 
@@ -76,7 +92,7 @@ Top 5 Squirrels
 `;
 
 liftersAndSquirrels.squirrels.forEach(p => {
-    message += `${p.name} ${Math.round(p.moveTime / 60 / 6) / 10} hours
+    message += `${p.name} ${Math.round((p.moveTime + p.modifiedTime) / 60 / 6) / 10} hours ${p.modifiedTime ? `(${Math.round(p.modifiedTime / 60 / 6) / 10} hours)` : ''}
 `
   });
 
