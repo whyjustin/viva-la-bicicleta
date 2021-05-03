@@ -82,7 +82,7 @@ const participantMap = {
   'irina t.': '@Irina Tishelman',
   'yizhao l.': '@Yizhao',
   'david d.': '@David Doughty',
-  'adam d.': '@Adam De Delva',
+  'adam d.': '@Adam de Delva',
   'j t.': '@Joe Tom',
   'juan a.': '@Juan Aguirre',
   'mikaela b.': '@Mikaela Berst',
@@ -174,7 +174,7 @@ async function armShells() {
   const allParticipants = participants.getAll();
   const lifters = Object.keys(allParticipants);
   shuffleArray(lifters);
-  const blueOrStar = getWeekNumber(todayDate)[1] ? 'b' : 's';
+  const blueOrStar = getWeekNumber(todayDate)[1] % 2 === 1 ? 'b' : 's';
   shells[getDateString(todayDate)] = {
     'r': lifters[1],
     'rrr': lifters[2]
@@ -232,7 +232,7 @@ ${getMentionName(shells.b)} launched a Blue Shell and hit
 `;
 
     const squirrels = liftersAndSquirrels.map.sort((a, b) => {
-      return (b.moveTime + b.modifiedTime) - (a.moveTime + b.modifiedTime);
+      return (b.moveTime + b.modifiedTime) - (a.moveTime + a.modifiedTime);
     }).filter(p => !liftersAndSquirrels.lifters.includes(p));
 
     for (let i = 0; i <= 4; i++) {
@@ -242,7 +242,7 @@ ${getMentionName(shells.b)} launched a Blue Shell and hit
         time: 0
       };
 
-      let blueTime = squirrel.moveTime - squirrels[5].moveTime;
+      let blueTime = (squirrel.moveTime + squirrel.modifiedTime) - (squirrels[5].moveTime + squirrels[5].modifiedTime);
       squirrelModifier.time -= blueTime;
       modifiers[squirrel.name] = squirrelModifier;
       message += `${getMentionName(squirrel.name)} ${Math.round(blueTime / 60 / 6) / 10} hours

@@ -55,7 +55,7 @@ function getLiftersAndSquirrels() {
 
   const squirrels = map
   .sort((a, b) => {
-    return (b.moveTime + b.modifiedTime) - (a.moveTime + b.modifiedTime);
+    return (b.moveTime + b.modifiedTime) - (a.moveTime + a.modifiedTime);
   }).filter(p => !lifters.includes(p)).slice(0, 5);
 
   return {
