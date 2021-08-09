@@ -50,13 +50,13 @@ function getLiftersAndSquirrels() {
 
   const lifters = map
   .sort((a, b) => {
-    return sumModifiedElevation(b) - sumModifiedElevation(a);
-  }).slice(0, 5);
+    return sumElevation(b) - sumElevation(a);
+  }).slice(0, 10);
 
   const squirrels = map
   .sort((a, b) => {
-    return (b.moveTime + b.modifiedTime) - (a.moveTime + a.modifiedTime);
-  }).filter(p => !lifters.includes(p)).slice(0, 5);
+    return b.moveTime - a.moveTime;
+  }).slice(0, 10);
 
   return {
     all: allParticipants,
@@ -78,21 +78,21 @@ module.exports.message = function () {
 
   let message = `Weekly Lift Challenge Leaderboard
 
-Top 5 Lifters
+Top 10 Lifters
 `;
   const liftersAndSquirrels = getLiftersAndSquirrels();
   
   liftersAndSquirrels.lifters.forEach(p => {
-    message += `${p.name} ${Math.round(sumModifiedElevation(p)/10)/100} km ${p.modifiedElevation ? `(${Math.round(p.modifiedElevation/10)/100} km)` : ''}
+    message += `${p.name} ${Math.round(sumElevation(p)/10)/100} km
 `
   });
 
   message += `
-Top 5 Squirrels
+Top 10 Squirrels
 `;
 
 liftersAndSquirrels.squirrels.forEach(p => {
-    message += `${p.name} ${Math.round((p.moveTime + p.modifiedTime) / 60 / 6) / 10} hours ${p.modifiedTime ? `(${Math.round(p.modifiedTime / 60 / 6) / 10} hours)` : ''}
+    message += `${p.name} ${Math.round(p.moveTime / 60 / 6) / 10} hours
 `
   });
 

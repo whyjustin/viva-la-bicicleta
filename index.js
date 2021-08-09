@@ -141,21 +141,21 @@ async function reportProgress(historyAsJson, newActivities) {
     }
   }
 
-  let armShellsMessage = await armShells();
+  //let armShellsMessage = await armShells();
   let monthlyChallengeMessage = monthlyChallenge.message();
-  let fireShellsMessage = await fireShells();
+  //let fireShellsMessage = await fireShells();
 
   let mainMessage = monthlyChallengeMessage.main;
-  if (armShellsMessage) {
-    mainMessage += `
+//   if (armShellsMessage) {
+//     mainMessage += `
 
-${armShellsMessage}`;
-  }
-  if (fireShellsMessage) {
-    mainMessage += `
+// ${armShellsMessage}`;
+//   }
+//   if (fireShellsMessage) {
+//     mainMessage += `
 
-${fireShellsMessage}`;
-  }
+// ${fireShellsMessage}`;
+//   }
 
   let totalsMessage = totals.message() + `
 
@@ -293,7 +293,7 @@ ${getMentionName(shells.s)} used their star and gained `;
       time: 0
     };
     let caughtIndex = Math.max(sIndex - 3, 0);
-    let targetTime = orderedParticipants[caughtIndex].moveTime - target.moveTime;
+    let targetTime = (orderedParticipants[caughtIndex].moveTime + orderedParticipants[caughtIndex].modifiedTime) - (target.moveTime + target.modifiedTime);
     targetModifier.time += targetTime;
     let targetElevation = Math.max(sumModifiedElevation(orderedParticipants[caughtIndex]) - sumModifiedElevation(target), 0);
     targetModifier.elevation += targetElevation;
